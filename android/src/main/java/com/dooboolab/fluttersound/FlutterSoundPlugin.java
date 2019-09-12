@@ -46,6 +46,8 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
   final private Handler mainHandler = new Handler();
   final private Handler dbPeakLevelHandler = new Handler();
   private static MethodChannel channel;
+  private long systemTime = 0;
+  private long time = 0;
 
   /** Plugin registration. */
   public static void registerWith(Registrar registrar) {
@@ -69,6 +71,12 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
         break;
       case "stopRecorder":
         taskScheduler.submit(() -> stopRecorder(result));
+        break;
+      case "pauseRecorder":
+        this.pauseRecorder(result);
+        break;
+      case "resumeRecorder":
+        this.resumeRecorder(result);
         break;
       case "startPlayer":
         this.startPlayer(path, result);
@@ -166,12 +174,12 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
 
       // Remove all pending runnables, this is just for safety (should never happen)
       recordHandler.removeCallbacksAndMessages(null);
-      final long systemTime = SystemClock.elapsedRealtime();
+      systemTime = SystemClock.elapsedRealtime();
       this.model.setRecorderTicker(() -> {
 
-        long time = SystemClock.elapsedRealtime() - systemTime;
-//          Log.d(TAG, "elapsedTime: " + SystemClock.elapsedRealtime());
-//          Log.d(TAG, "time: " + time);
+        time = SystemClock.elapsedRealtime() - systemTime;
+          Log.d(TAG, "elapsedTime: " + SystemClock.elapsedRealtime());
+          Log.d(TAG, "time: " + time);
 
 //          DateFormat format = new SimpleDateFormat("mm:ss:SS", Locale.US);
 //          String displayTime = format.format(time);
@@ -248,6 +256,43 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
       }
     });
 
+  }
+
+  @Override
+  public void pauseRecorder(Result result) {
+    if (this.model.getMediaRecorder() == null) {
+      result.error(ERR_RECORDER_IS_NULL, ERR_RECORDER_IS_NULL, ERR_RECORDER_IS_NULL);
+      return;
+    }
+
+    try {
+      recordHandler.removeCallbacksAndMessages(null);
+      dbPeakLevelHandler.removeCallbacksAndMessages(null);
+      this.model.getMediaRecorder().pause();
+      result.success("paused recorder.");
+    } catch (Exception e) {
+      Log.e(TAG, "pauseRecord exception: " + e.getMessage());
+      result.error(ERR_UNKNOWN, ERR_UNKNOWN, e.getMessage());
+    }
+  }
+
+  @Override
+  public void resumeRecorder(Result result) {
+    if (this.model.getMediaRecorder() == null) {
+      result.error(ERR_RECORDER_IS_NULL, ERR_RECORDER_IS_NULL, ERR_RECORDER_IS_NULL);
+      return;
+    }
+
+    try {
+      recordHandler.post(this.model.getRecorderTicker());
+      dbPeakLevelHandler.post(this.model.getDbLevelTicker());
+      this.model.getMediaRecorder().resume();
+      systemTime = SystemClock.elapsedRealtime() - time;
+      result.success("resumed recorder.");
+    } catch (Exception e) {
+      Log.e(TAG, "mediaRecorder resume: " + e.getMessage());
+      result.error(ERR_UNKNOWN, ERR_UNKNOWN, e.getMessage());
+    }
   }
 
   @Override
