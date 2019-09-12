@@ -132,6 +132,10 @@ NSString* status = [NSString stringWithFormat:@"{\"current_position\": \"%@\"}",
       [self startRecorder:path:numChannels:sampleRate:iosQuality:bitRate result:result];
   } else if ([@"stopRecorder" isEqualToString:call.method]) {
     [self stopRecorder:result];
+  } else if ([@"pauseRecorder" isEqualToString:call.method]) {
+      [self pauseRecorder:result];
+  } else if ([@"resumeRecorder" isEqualToString:call.method]) {
+      [self resumeRecorder:result];
   } else if ([@"startPlayer" isEqualToString:call.method]) {
       NSString* path = (NSString*)call.arguments[@"path"];
       [self startPlayer:path result:result];
@@ -226,6 +230,43 @@ NSString* status = [NSString stringWithFormat:@"{\"current_position\": \"%@\"}",
 
   NSString *filePath = self->audioFileURL.absoluteString;
   result(filePath);
+}
+
+- (void)pauseRecorder:(FlutterResult)result {
+    if (audioRecorder && [audioRecorder isRecording]) {
+        [audioRecorder pause];
+        if (timer != nil) {
+            [timer invalidate];
+            timer = nil;
+        }
+        if (dbPeakTimer != nil) {
+            [dbPeakTimer invalidate];
+            dbPeakTimer = nil;
+        }
+        result(@"pause recording");
+    } else {
+        result([FlutterError
+                errorWithCode:@"Audio Recorder"
+                message:@"recorder is not set"
+                details:nil]);
+    }
+}
+
+- (void)resumeRecorder:(FlutterResult)result {
+    if (!audioRecorder) {
+        result([FlutterError
+                errorWithCode:@"Audio Recorder"
+                message:@"recorder is not set"
+                details:nil]);
+        return;
+    }
+    
+    [audioRecorder record];
+    [self startRecorderTimer];
+    [self startDbTimer];
+    
+    NSString *filePath = self->audioFileURL.absoluteString;
+    result(filePath);
 }
 
 - (void)stopRecorder:(FlutterResult)result {

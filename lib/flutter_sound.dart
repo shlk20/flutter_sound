@@ -157,6 +157,20 @@ class FlutterSound {
     return result;
   }
 
+  Future<String> pauseRecorder() async {
+    if (!this._isRecording) {
+      throw new Exception('Recorder has not started');
+    }
+
+    String result = await _channel.invokeMethod('pauseRecorder');
+    return result;
+  }
+
+  Future<String> resumeRecorder() async {
+    String result = await _channel.invokeMethod('resumeRecorder');
+    return result;
+  }
+
   Future<String> startPlayer(String uri) async {
     if (this._isPlaying) {
       throw PlayerRunningException('Player is already playing.');

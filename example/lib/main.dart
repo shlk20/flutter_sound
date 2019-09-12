@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool _isRecording = false;
   // bool _isPlaying = false;
+  bool _isPauseRecord = false;
   StreamSubscription _recorderSubscription;
   StreamSubscription _dbPeakSubscription;
   StreamSubscription _playerSubscription;
@@ -91,6 +92,24 @@ class _MyAppState extends State<MyApp> {
     } catch (err) {
       print('stopRecorder error: $err');
     }
+  }
+
+  void pauseRecorder() async {
+    String result = await flutterSound.pauseRecorder();
+    print('pauseRecorder: $result');
+
+    setState(() {
+      _isPauseRecord = true;
+    });
+  }
+
+  void resumeRecorder() async{
+    String result = await flutterSound.resumeRecorder();
+    print('resumeRecorder: $result');
+
+    setState(() {
+      _isPauseRecord = false;
+    });
   }
 
   void startPlayer() async{
@@ -198,6 +217,24 @@ class _MyAppState extends State<MyApp> {
                       padding: EdgeInsets.all(8.0),
                       child: Image(
                         image: this._isRecording ? AssetImage('res/icons/ic_stop.png') : AssetImage('res/icons/ic_mic.png'),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 56.0,
+                  height: 56.0,
+                  child: ClipOval(
+                    child: FlatButton(
+                      onPressed: () {
+                        if (this._isPauseRecord) {
+                          return this.resumeRecorder();
+                        }
+                        this.pauseRecorder();
+                      },
+                      padding: EdgeInsets.all(8.0),
+                      child: Image(
+                        image: !this._isPauseRecord ? AssetImage('res/icons/ic_pause.png') : AssetImage('res/icons/ic_mic.png'),
                       ),
                     ),
                   ),
