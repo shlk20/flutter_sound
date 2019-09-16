@@ -80,6 +80,7 @@ class FlutterSound {
         default:
           throw new ArgumentError('Unknown method ${call.method}');
       }
+      return null;
     });
   }
 
@@ -113,7 +114,9 @@ class FlutterSound {
   Future<String> startRecorder(String uri,
       {int sampleRate = 44100, int numChannels = 2, int bitRate,
         AndroidEncoder androidEncoder = AndroidEncoder.AAC,
-        IosQuality iosQuality = IosQuality.LOW
+        AndroidAudioSource androidAudioSource = AndroidAudioSource.MIC,
+        AndroidOutputFormat androidOutputFormat = AndroidOutputFormat.MPEG_4,
+        IosQuality iosQuality = IosQuality.LOW,
       }) async {
         
     if (this._isRecording) {
@@ -128,6 +131,8 @@ class FlutterSound {
         'numChannels': numChannels,
         'bitRate': bitRate,
         'androidEncoder': androidEncoder?.value,
+        'androidAudioSource': androidAudioSource?.value,
+        'androidOutputFormat': androidOutputFormat?.value,
         'iosQuality': iosQuality?.value
       });
       _setRecorderCallback();

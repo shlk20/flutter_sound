@@ -64,7 +64,9 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
           int numChannels = call.argument("numChannels");
           int androidEncoder = call.argument("androidEncoder");
           Integer bitRate = call.argument("bitRate");
-          startRecorder(numChannels, sampleRate, bitRate, androidEncoder, path, result);
+          int androidAudioSource = call.argument("androidAudioSource");
+          int androidOutputFormat = call.argument("androidOutputFormat");
+          startRecorder(numChannels, sampleRate, bitRate, androidEncoder, androidAudioSource, androidOutputFormat, path, result);
         });
         break;
       case "stopRecorder":
@@ -122,7 +124,7 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
   }
 
   @Override
-  public void startRecorder(int numChannels, int sampleRate, Integer bitRate, int androidEncoder, String path, final Result result) {
+  public void startRecorder(int numChannels, int sampleRate, Integer bitRate, int androidEncoder, int androidAudioSource, int androidOutputFormat, String path, final Result result) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
       if (
@@ -138,16 +140,14 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
       }
     }
 
-    Log.d(TAG, "startRecorder");
-
     if (path == null) {
       path = AudioModel.DEFAULT_FILE_LOCATION;
     }
 
     if (this.model.getMediaRecorder() == null) {
       this.model.setMediaRecorder(new MediaRecorder());
-      this.model.getMediaRecorder().setAudioSource(MediaRecorder.AudioSource.MIC);
-      this.model.getMediaRecorder().setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+      this.model.getMediaRecorder().setAudioSource(androidAudioSource);
+      this.model.getMediaRecorder().setOutputFormat(androidOutputFormat);
       this.model.getMediaRecorder().setAudioEncoder(androidEncoder);
       this.model.getMediaRecorder().setAudioChannels(numChannels);
       this.model.getMediaRecorder().setAudioSamplingRate(sampleRate);
@@ -199,11 +199,17 @@ public class FlutterSoundPlugin implements MethodCallHandler, PluginRegistry.Req
             // https://stackoverflow.com/questions/10655703/what-does-androids-getmaxamplitude-function-for-the-mediarecorder-actually-gi
             // 
             double ref_pressure = 51805.5336;
-            double p = maxAmplitude / ref_pressure;
+            double p = maxAmplitude  / ref_pressure;
             double p0 = 0.0002;
+
             double db = 20.0 * Math.log10(p / p0);
 
-            // Log.d(TAG, "Amp1: " + maxAmplitude + " Base DB: " + db);
+            // if the microphone is off we get 0 for the amplitude which causes
+            // db to be infinite.
+            if (Double.isInfinite(db))
+              db = 0.0;
+
+            Log.d(TAG, "rawAmplitude: " + maxAmplitude + " Base DB: " + db);
 
             channel.invokeMethod("updateDbPeakProgress", db);
             dbPeakLevelHandler.postDelayed(model.getDbLevelTicker(),
